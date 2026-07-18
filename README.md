@@ -15,3 +15,13 @@
 ###   | main.py ---> main file
 ###   | .env.example ---> put your token here
 ###   | requirements.txt ---> for run the bot
+
+# Version 1.1
+
+# add DBMS to make the bot sve data
+# add admin panel
+# fix some issus in bot.py
+
+# DBMS.py
+# admin.py
+

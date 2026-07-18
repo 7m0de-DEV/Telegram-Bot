@@ -1,20 +1,29 @@
-from bot import *
+from bot import start,helP,about,music,video,song_recognazed,filters,os,CommandHandler,MessageHandler,ApplicationBuilder,CallbackQueryHandler
 from dotenv import load_dotenv
+from admin import admin_panel, handle_admin_command, handle_broadcast_text
+from DBMS import init_db
+import asyncio
+
 load_dotenv()
 
 BOT_TOKEN = os.environ["token"]
 
 def main():
     app = ApplicationBuilder().token(BOT_TOKEN).concurrent_updates(True).build()
+    asyncio.get_event_loop().run_until_complete(init_db())
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", helP))
     app.add_handler(CommandHandler("music", music))
     app.add_handler(CommandHandler("video", video))
     app.add_handler(CommandHandler("about",about))
+    app.add_handler(CommandHandler("admin",admin_panel))
+    app.add_handler(CallbackQueryHandler(handle_admin_command, pattern="^admin:"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,handle_broadcast_text))
+
     app.add_handler(MessageHandler(filters.AUDIO,song_recognazed))
 
-
+    
     print("Bot is running... Press Ctrl+C to stop.")
     app.run_polling()
 
