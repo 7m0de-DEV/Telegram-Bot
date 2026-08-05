@@ -25,3 +25,8 @@
 # DBMS.py
 # admin.py
 
+# version 1.2 
+
+## add tiktok download video by url
+
+## add insta download video by url
