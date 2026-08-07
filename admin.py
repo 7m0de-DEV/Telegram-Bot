@@ -70,6 +70,10 @@ async def handle_admin_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def handle_broadcast_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.channel_post:
+        return
+
     if not context.user_data.get("awaiting_broadcast"):
         return
     if not is_admin(update.effective_user.id):

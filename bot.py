@@ -9,6 +9,7 @@ from telegram.error import TimedOut
 from music_downloader import download_audio
 from video_downloader import download_video, generate_thumbnail
 from instagram_downloader import download_reel
+from spotify_downloader import download_spotify_track, is_spotify_url
 from tiktok_downloader import download_tiktok
 from isURL import isURL
 from dir import cdir
@@ -42,9 +43,12 @@ async def helP(update:Update,context:ContextTypes.DEFAULT_TYPE):
     "use /video and type video name or URL\n\n"
     "use /insta and type Instagram Reel URL\n\n"
     "use /tiktok and type TikTok Video URL\n\n"
+    "use /spotify and type Spotify track URL\n\n"
+    "add the bot to your channel as admin\n"
+    "use ('/music','/song') for channel command\n\n" 
     "or if you dont know the name of your song\n"
     "send me audio file have part of the song\n"
-    "I will recognazed it and upload it to you"
+    "I will recognazed it and upload it to you\n\n"
     )
 
 async def about(update:Update,contxt:ContextTypes.DEFAULT_TYPE):
@@ -180,6 +184,10 @@ async def video(update:Update,context:ContextTypes.DEFAULT_TYPE):
             os.remove(thumb_path)
 
 async def song_recognazed(update:Update,context:ContextTypes.DEFAULT_TYPE):
+
+    if update.channel_post:
+
+        return
 
     status = await update.message.reply_text("🎧 Listening...")
 
@@ -383,4 +391,74 @@ async def tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(thumb_path)
 
 
-        
+async def spotify(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("please type a Spotify track URL beside the command")
+        return
+
+    url = context.args[0]
+    file_path = None
+    thumbnail_path = None
+
+    if not is_spotify_url(url):
+        await update.message.reply_text(
+            "please provide a valid Spotify track URL\n"
+            "e.g. https://open.spotify.com/track/..."
+        )
+        return
+
+    status_message = await update.message.reply_text("🎵 Downloading from Spotify...")
+
+    try:
+        title, artist, file_path, thumbnail_path = await asyncio.to_thread(
+            download_spotify_track, url
+        )
+
+        if not file_path or not os.path.exists(file_path):
+            await status_message.edit_text(
+                "❌ Failed to download the track. Please check the URL and try again."
+            )
+            return
+
+        try:
+            await log_activity(
+                update.effective_user.id, update.effective_user.username, "download", url
+            )
+        except Exception as e:
+            print(f"Logging failed: {e}")
+
+        await status_message.edit_text("🎵 Sending the audio file, please wait...")
+
+        with open(file_path, "rb") as audio_file:
+            await update.message.reply_audio(
+                audio=audio_file,
+                title=title,
+                performer=artist,
+                read_timeout=120,
+                write_timeout=120,
+            )
+
+        try:
+            await log_activity(
+                update.effective_user.id, update.effective_user.username, "upload", url
+            )
+        except Exception as e:
+            print(f"Logging failed: {e}")
+
+    except TimedOut:
+        pass
+    except Exception as e:
+        print(f"Error: {e}")
+        try:
+            await status_message.edit_text("❌ An error occurred while processing the request.")
+        except Exception:
+            pass
+    finally:
+        try:
+            await status_message.delete()
+        except Exception:
+            pass
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            os.remove(thumbnail_path)
